@@ -1,0 +1,11 @@
+- hosts: kube-master
+  tasks:
+    - name: install httpd
+      yum:
+        name: httpd
+    - name: setting httpd
+      shell: ln -s /opt/yum /var/www/html/  
+    - name: setting service
+      service:
+        name: httpd
+        state: started
