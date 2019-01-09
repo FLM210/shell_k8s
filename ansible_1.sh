@@ -122,3 +122,4 @@ allinone)
 	ansible-playbook /etc/ansible/90.setup.yml
     echo "安装完成，请刷新当前环境变量。";;
 esac
+qeqweqwe
