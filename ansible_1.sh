@@ -15,6 +15,7 @@ if [ "$yum" == "yes" ];then
 	echo "原yum文件备份至／etc/yum.repos.d/bak文件夹下"
 	read -p "请输入集群yum源主机地址"　httpd
 	yum -y install httpd &> /dev/null
+	systemctl start httpd
 	ln -s /opt/yum /var/www/html/
 	sed -i "3c baseurl=http://$httpd/yum" ./k8s.repo
 	\cp ./k8s.repo /etc/yum.repos.d/
