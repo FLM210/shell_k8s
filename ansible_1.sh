@@ -13,9 +13,12 @@ if [ "$yum" == "yes" ];then
 	mkdir /etc/yum.repos.d/bak &>/dev/null
 	mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak
 	echo "原yum文件以备份至／etc/yum.repos.d/bak文件夹下"
-	read -p "请输入"
-	cp ./k8s.repo /etc/yum.repos.d/
-	yum makecache  &> /dev/null
+	read -p "请输入集群yum源主机地址"　httpd
+	yum -y install httpd &> /dev/null
+	ln -s /opt/yum /var/www/html/
+	sed -i "3c baseurl=http://$httpd/yum" ./k8s.repo
+	\cp ./k8s.repo /etc/yum.repos.d/
+	yum clean all  &> /dev/null
 	echo "yum源安装完成"
 fi
 while :
