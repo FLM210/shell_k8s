@@ -24,7 +24,7 @@ if [ "$yum" == "yes" ];then
 fi
 while :
 do
-	read -p "是否安装ansible(yes/no)：" ansible：-yes
+	read -p "是否安装ansible(yes/no)：" ansible
 	if [ "$ansible" != "yes" ]&&[ "$ansible" != "no" ];then
 		echo "please input yes or no"
 	else
