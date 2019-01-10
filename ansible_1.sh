@@ -13,7 +13,7 @@ if [ "$yum" == "yes" ];then
 	mkdir /etc/yum.repos.d/bak &>/dev/null
 	mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak
 	echo "原yum文件以备份至／etc/yum.repos.d/bak文件夹下"
-	read -p "请输入　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　"
+	read -p "请输入"
 	cp ./k8s.repo /etc/yum.repos.d/
 	yum makecache  &> /dev/null
 	echo "yum源安装完成"
