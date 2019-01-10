@@ -12,7 +12,7 @@ if [ "$yum" == "yes" ];then
 	tar -xf ./yum.tar.gz -C /opt/
 	mkdir /etc/yum.repos.d/bak &>/dev/null
 	mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak
-	echo "原yum文件以备份至／etc/yum.repos.d/bak文件夹下"
+	echo "原yum文件备份至／etc/yum.repos.d/bak文件夹下"
 	read -p "请输入集群yum源主机地址"　httpd
 	yum -y install httpd &> /dev/null
 	ln -s /opt/yum /var/www/html/
