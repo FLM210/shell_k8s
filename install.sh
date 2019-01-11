@@ -5,49 +5,46 @@ var(){
 }
 if [ "$1" == "--retry" ];then
 	ansible-playbook  /etc/ansible/90.setup.yml
+	echo "集群重装完成"
+	exit 0
 elif [ "$1" == "--clean" ];then
 	ansible-playbook  /etc/ansible/99.clean.yml
+	echo "集群清除完成"
+	exit 0
 elif [ "$1" == "--addnew" ];then
 	\cp /etc/ansible/hosts /etc/ansible/hosts.bak
 	echo "当前集群配置备份完毕。"
 	echo "检测当前运行模式中........." 
 	for i in allinone masters smaster
 	do
-		cat /etc/ansible/hots | grep $i
+		cat /etc/ansible/hosts | grep $i &>/dev/null
         if [ $? -eq 0 ];then
                 echo “mode is $i”
                 break
-        else
-                echo "当前hosts文件出错请尝试重新安装"
-				exit 233
         fi
 	done
 
 	if [ "$i" == "allinone" ];then	
-		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)"　addnode
+		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode
 		for i in $addnode
 		do
-			sed -i "19a $i" /etc/ansible/hosts
+			sed -i "2a $i" /etc/ansible/hosts
 		done
-	fi
-
-	if [ "$i" == "smaster" ];then
-		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)"　addnode
+	elif  [ "$i" == "smaster" ];then
+		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode
 		for i in $addnode
 		do
-			sed -i "18a $i" /etc/ansible/hosts
+			sed -i "2a $i" /etc/ansible/hosts
 		done
-	fi
-
-	if [ "$i" == "masters"];then
-		read -p "请输入需要增加的Ｍaster节点地址(如有多个请用空格分开，若不增添请直接跳过)"　addmaster
-		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开，若不增添请直接跳过)"　addnode
+	elif [ "$i" == "masters"];then
+		read -p "请输入需要增加的Ｍaster节点地址(如有多个请用空格分开，若不增添请直接跳过)：" addmaster
+		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开，若不增添请直接跳过)：" addnode
 		if [ -z $addmaster ];then
 			echo "未更改Master信息"
 		else
 			for i in $addmaster
 			do
-				sed -i "24a $i" /etc/ansible/hosts
+				sed -i "2a $i" /etc/ansible/hosts
 			done
 		fi
 		if [ -z $addnode ];then
@@ -55,10 +52,12 @@ elif [ "$1" == "--addnew" ];then
 		else
 			for i in $addnode
 			do
-				sed -i "27a $i" /etc/ansible/hosts
+				sed -i "4a $i" /etc/ansible/hosts
 			done
 		fi
 	fi
+
+
 
 	while :
 	do
@@ -69,10 +68,11 @@ elif [ "$1" == "--addnew" ];then
 			break
 		fi
 	done
-	if [ "$complete" == "yes" ];then
+	if [ "$complete" == "yes" ];then 
 		if [ -z $addmaster ];then
 			echo
 		else
+			scp /etc/yum.repos.d/*.repo  root@$addmaster:/etc/yum.repos.d/ 
 			echo "开始添加Master节点"
 			ansible-playbook /etc/ansible/21.addmaster.yml
 		fi
@@ -80,7 +80,9 @@ elif [ "$1" == "--addnew" ];then
 			echo
 		else
 			echo "开始添加node节点"
+			scp /etc/yum.repos.d/*.repo  root@$addmaster:/etc/yum.repos.d/
 			ansible-playbook /etc/ansible/20.addnode.yml
+			exit 0
 		fi
 	else
 		echo "集群信息已保存"
@@ -99,7 +101,9 @@ if [ -f ./.var ];then
 	done
 
 	if [ "$reload" == "yes" ];then
-		source  ./.var 　&& echo "配置文件加载成功，大国喝瓶阔落，一路回车is ok" 
+		source  ./.var  && echo "配置文件加载成功，大国喝瓶阔落" 
+		ansible-playbook /etc/ansible/90.setup.yml
+		exit 0
 	fi
 else
 	echo "配置文件不存在，无法重新加载上次配置，请手动输入参数"
@@ -107,7 +111,7 @@ fi
 
 echo "解压资源中请稍等。"
 mkdir /etc/ansible &>/dev/null
-tar -xf ./sh_install.tar.gz -C /etc/ansible
+#tar -xf ./k8s.tar.gz -C /etc/ansible
 while :
 do
 	read -p "是否配置离线yum源(yes/no)：" yum
@@ -124,7 +128,7 @@ if [ "$yum" == "yes" ];then
 	mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak
 	echo "原yum文件备份至／etc/yum.repos.d/bak文件夹下"
 	\cp /etc/ansible/example/k8s.repo /etc/yum.repos.d/
-	read -p "请输入集群yum源主机地址："　httpd
+	read -p "请输入集群yum源主机地址：" httpd
 	var httpd $httpd
 	yum -y install httpd &> /dev/null
 	systemctl start httpd
@@ -136,7 +140,7 @@ fi
 
 while :
 do
-	read -p "是否安装ansible(yes/no)：" ansible
+	read -p "是否安装ansible(yes/no)：" ansible	
 	if [ "$ansible" != "yes" ]&&[ "$ansible" != "no" ];then
 		echo "please input yes or no"
 	else
@@ -145,7 +149,7 @@ do
 	fi
 done
 if [ "$ansible" == "yes" ];then
-	yum -y install ansible	&&  echo "ansible安装完成" 　||  echo "ansible安装失败请尝试手动安装"
+	yum -y install ansible	&&  echo "ansible安装完成"  ||  echo "ansible安装失败请尝试手动安装"
 fi
 
 etcdnum=1 
@@ -155,8 +159,8 @@ single)
 	var type $type
 	read -p "请输入master节点地址：" master  
 	read -p "请输入时间服务器地址：" timeserver  
-	read -p "请输入etcd节点地址(如有多个请用空格分开)：" etcd   
-	read -p "请输入node节点地址(如有多个请用空格分开)：" node  
+	read -p "请输入etcd节点地址(如有多个请用空格分开)：：" etcd   
+	read -p "请输入node节点地址(如有多个请用空格分开)：：" node  
 	read -p "请输入网络插件（calico, flannel, kube-router, cilium）：" network   
 	var master $master
 	var timeserver $timeserver
@@ -165,11 +169,11 @@ single)
 	var network $network
 	sed  -i "s/192.168.1.1 NTP_ENABLED=no/$timeserver NTP_ENABLED=no/" /etc/ansible/example/hosts.s-master.example
 	sed  -i "s/^master/$master/" /etc/ansible/example/hosts.s-master.example
-	for n in $nodeadd
+	for n in $node
     do
-        sed -i "$12a $n" /etc/ansible/example/hosts.s-master.example 
+        sed -i "12a $n" /etc/ansible/example/hosts.s-master.example 
     done
-　　 for n in $etcdadd
+	for n in $etcd
 	do
 		sed -i "8a $n "NODE_NAME=etcd${etcdnum}"" /etc/ansible/example/hosts.s-master.example 
 		etcdnum=$((${etcdnum}+1))
@@ -204,11 +208,11 @@ multi)
 	sed  -i "s/192.168.1.1 NTP_ENABLED=no/$timeserver NTP_ENABLED=no/" /etc/ansible/example/hosts.m-masters.example
 	sed  -i "10a $master_1" /etc/ansible/example/hosts.m-masters.example
 	sed  -i "11a $master_2" /etc/ansible/example/hosts.m-masters.example 
-	for n in $nodeadd
+	for n in $node
     do
         sed -i "17a $n" /etc/ansible/example/hosts.m-masters.example 
     done
-	for n in $etcdadd
+	for n in $etcd
 	do
 		sed -i "8a $n "NODE_NAME=etcd${etcdnum}"" /etc/ansible/example/hosts.m-masters.example 
 		etcdnum=$((${etcdnum}+1))
