@@ -7,6 +7,85 @@ if [ "$1" == "--retry" ];then
 	ansible-playbook  /etc/ansible/90.setup.yml
 elif [ "$1" == "--clean" ];then
 	ansible-playbook  /etc/ansible/99.clean.yml
+elif [ "$1" == "--addnew" ];then
+	\cp /etc/ansible/hosts /etc/ansible/hosts.bak
+	echo "当前集群配置备份完毕。"
+	echo "检测当前运行模式中........." 
+	for i in allinone masters smaster
+	do
+		cat /etc/ansible/hots | grep $i
+        if [ $? -eq 0 ];then
+                echo “mode is $i”
+                break
+        else
+                echo "当前hosts文件出错请尝试重新安装"
+				exit 233
+        fi
+	done
+
+	if [ "$i" == "allinone" ];then	
+		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)"　addnode
+		for i in $addnode
+		do
+			sed -i "19a $i" /etc/ansible/hosts
+		done
+	fi
+
+	if [ "$i" == "smaster" ];then
+		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)"　addnode
+		for i in $addnode
+		do
+			sed -i "18a $i" /etc/ansible/hosts
+		done
+	fi
+
+	if [ "$i" == "masters"];then
+		read -p "请输入需要增加的Ｍaster节点地址(如有多个请用空格分开，若不增添请直接跳过)"　addmaster
+		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开，若不增添请直接跳过)"　addnode
+		if [ -z $addmaster ];then
+			echo "未更改Master信息"
+		else
+			for i in $addmaster
+			do
+				sed -i "24a $i" /etc/ansible/hosts
+			done
+		fi
+		if [ -z $addnode ];then
+			echo "未更改node信息"
+		else
+			for i in $addnode
+			do
+				sed -i "27a $i" /etc/ansible/hosts
+			done
+		fi
+	fi
+
+	while :
+	do
+		read -p "节点添加完成，是否进行安装(yes/no)：" complete
+		if [ "$complete" != "yes" ]&&[ "$complete" != "no" ];then
+		echo "please input yes or no"
+		else
+			break
+		fi
+	done
+	if [ "$complete" == "yes" ];then
+		if [ -z $addmaster ];then
+			echo
+		else
+			echo "开始添加Master节点"
+			ansible-playbook /etc/ansible/21.addmaster.yml
+		fi
+		if [ -z $addnode ];then
+			echo
+		else
+			echo "开始添加node节点"
+			ansible-playbook /etc/ansible/20.addnode.yml
+		fi
+	else
+		echo "集群信息已保存"
+		exit 88
+	fi 
 fi
 
 if [ -f ./.var ];then
