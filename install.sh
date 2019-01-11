@@ -1,5 +1,37 @@
 #!/bin/bash
 
+check_ip() {
+	n1=`echo $1|awk -F. '{print $1}'`
+	n2=`echo $1|awk -F. '{print $2}'`
+	n3=`echo $1|awk -F. '{print $3}'`
+	n4=`echo $1|awk -F. '{print $4}'`
+	if [ $n1 -ge 1 ]&&[ $n1 -lt 255 ]&&[ $n2 -ge 1 ]&&[ $n2 -lt 255 ]&&[ $n3 -ge 1 ]&&[ $n3 -lt 255 ]&&[ $n4 -ge 1 ]&&[ $n4 -lt 255 ];then
+		export code=0
+	else
+		echo "请输入正确的IP地址"
+		export code=1
+	fi
+}
+
+attack_ip(){
+	IP=$1
+	if [ $IP =~ ^.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]; then
+		FIELD1=$(echo $IP|cut -d. -f1)
+		FIELD2=$(echo $IP|cut -d. -f2)
+		FIELD3=$(echo $IP|cut -d. -f3)
+		FIELD4=$(echo $IP|cut -d. -f4)
+		if [ $FIELD1 -le 255 ]&&[ $FIELD2 -le 255 ]&&[ $FIELD3 -le 255 ]&&[ $FIELD4 -le 255];then
+			export code=0
+		else
+			echo "请输入正确的IP地址"
+			export code=1
+		fi
+	else
+		echo "请输入正确的IP地址"
+		export code=1
+	fi
+}
+
 var(){
 	echo $1=$2 >> ./.var
 }
@@ -25,20 +57,43 @@ elif [ "$1" == "--addnew" ];then
 	done
 
 	if [ "$i" == "allinone" ];then	
-		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode
+		while : 
+		do   
+    		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode   
+    		check_ip $addnode
+    		[ "$?" == "0" ] && break   
+		done	
 		for i in $addnode
 		do
 			sed -i "2a $i" /etc/ansible/hosts
 		done
 	elif  [ "$i" == "smaster" ];then
+		while : 
+		do   
+    		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode   
+    		check_ip $addnode   
+    		[ $? -eq 0 ] && break   
+		done
 		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode
 		for i in $addnode
 		do
 			sed -i "2a $i" /etc/ansible/hosts
 		done
 	elif [ "$i" == "masters"];then
-		read -p "请输入需要增加的Ｍaster节点地址(如有多个请用空格分开，若不增添请直接跳过)：" addmaster
-		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开，若不增添请直接跳过)：" addnode
+		while : 
+		do   
+    		read -p "请输入需要增加的Ｍaster节点地址(如有多个请用空格分开，若不增添请直接跳过)：" addmaster  
+    		check_ip $addmaster
+    		[ $? -eq 0 ] && break   
+		done	
+
+		while : 
+		do   
+    		rread -p "请输入需要增加节点的IP地址(如有多个请用空格分开，若不增添请直接跳过)：" addnode 
+    		check_ip $addnode
+    		[ $? -eq 0 ] && break   
+		done		
+		
 		if [ -z $addmaster ];then
 			echo "未更改Master信息"
 		else
@@ -101,7 +156,7 @@ if [ -f ./.var ];then
 	done
 
 	if [ "$reload" == "yes" ];then
-		source  ./.var  && echo "配置文件加载成功，大国喝瓶阔落" 
+		source  ./.var  && echo "配置文件加载成功" 
 		ansible-playbook /etc/ansible/90.setup.yml
 		exit 0
 	fi
@@ -111,7 +166,7 @@ fi
 
 echo "解压资源中请稍等。"
 mkdir /etc/ansible &>/dev/null
-#tar -xf ./k8s.tar.gz -C /etc/ansible
+tar -xf ./k8s.tar.gz -C /etc/ansible
 while :
 do
 	read -p "是否配置离线yum源(yes/no)：" yum
@@ -157,7 +212,16 @@ read -p "请输入集群安装方式（single/multi,allinone）:" type
 case $type in 
 single)
 	var type $type
-	read -p "请输入master节点地址：" master  
+        while true;
+        do
+                read -p "请输入master节点地址：" master
+                n=0
+                for ip in $master;do
+                        attack_ip $ip
+                        n=$(( ${code} + $n ))
+                done
+                [ $n -eq 0 ] && break || continue
+        done
 	read -p "请输入时间服务器地址：" timeserver  
 	read -p "请输入etcd节点地址(如有多个请用空格分开)：：" etcd   
 	read -p "请输入node节点地址(如有多个请用空格分开)：：" node  
