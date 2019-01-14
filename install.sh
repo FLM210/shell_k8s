@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo `date +%Y_%m_%d:%k:%M` >> ./.var
 check_ip() {
 	n1=`echo $1|awk -F. '{print $1}'`
 	n2=`echo $1|awk -F. '{print $2}'`
@@ -12,7 +12,6 @@ check_ip() {
 		export code=1
 	fi 2>/dev/null
 }
-
 
 var(){
 	echo $1=$2 >> ./.var
@@ -124,25 +123,6 @@ elif [ "$1" == "--addnew" ];then
 		echo "集群信息已保存"
 		exit 88
 	fi 
-fi
-
-if [ -f ./.var ];then
-	while :
-	do
-		read -p "是否加载上次配置：" reload
-		if [ "$reload" != "yes" ]&&[ "$reload" != "no" ];then
-			echo "please input yes or no"
-		fi
-			break
-	done
-
-	if [ "$reload" == "yes" ];then
-		source  ./.var  && echo "配置文件加载成功" 
-		ansible-playbook /etc/ansible/90.setup.yml
-		exit 0
-	fi
-else
-	echo "配置文件不存在，无法重新加载上次配置，请手动输入参数"
 fi
 
 echo "解压资源中请稍等。"
