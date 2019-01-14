@@ -218,7 +218,7 @@ single)
 	  
         while true;
         do
-            read -p "请输入etcd节点地址(如有多个请用空格分开)：：" etcd
+            read -p "请输入etcd节点地址(如有多个请用空格分开)：" etcd
             n=0
             for ip in $etcd;do
                 check_ip $ip
@@ -229,7 +229,7 @@ single)
 	 
 	    while true;
         do
-            read -p "请输入node节点地址(如有多个请用空格分开)：：" node 
+            read -p "请输入node节点地址(如有多个请用空格分开)：" node 
             n=0
             for ip in $node;do
                 check_ip $ip
@@ -247,11 +247,11 @@ single)
 	sed  -i "s/^master/$master/" /etc/ansible/example/hosts.s-master.example
 	for n in $node
     do
-        sed -i "12a $n" /etc/ansible/example/hosts.s-master.example 
+        sed -i "15a $n" /etc/ansible/example/hosts.s-master.example 
     done
 	for n in $etcd
 	do
-		sed -i "8a $n "NODE_NAME=etcd${etcdnum}"" /etc/ansible/example/hosts.s-master.example 
+		sed -i "12a $n "NODE_NAME=etcd${etcdnum}"" /etc/ansible/example/hosts.s-master.example 
 		etcdnum=$((${etcdnum}+1))
 	done
 	sed -i "s/CLUSTER_NETWORK=\"flannel\"/CLUSTER_NETWORK=\"$network\"/" /etc/ansible/example/hosts.s-master.example
@@ -344,7 +344,6 @@ multi)
 	ansible all -m copy -a  'src=/etc/ansible/example/k8s.repo dest=/etc/yum.repos.d/' &>/dev/null 
 	ansible-playbook /etc/ansible/90.setup.yml
 	echo "安装完成，请刷新当前环境变量。" ;;
-
 
 allinone)
 	var type $type
