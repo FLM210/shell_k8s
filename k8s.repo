@@ -1,5 +1,0 @@
-[k8s]
-name=k8s
-baseurl=file:///opt/yum
-gpgcheck=0
-enable=1

@@ -10,27 +10,9 @@ check_ip() {
 	else
 		echo "请输入正确的IP地址"
 		export code=1
-	fi
+	fi 2>/dev/null
 }
 
-attack_ip(){
-	IP=$1
-	if [ $IP =~ ^.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]; then
-		FIELD1=$(echo $IP|cut -d. -f1)
-		FIELD2=$(echo $IP|cut -d. -f2)
-		FIELD3=$(echo $IP|cut -d. -f3)
-		FIELD4=$(echo $IP|cut -d. -f4)
-		if [ $FIELD1 -le 255 ]&&[ $FIELD2 -le 255 ]&&[ $FIELD3 -le 255 ]&&[ $FIELD4 -le 255];then
-			export code=0
-		else
-			echo "请输入正确的IP地址"
-			export code=1
-		fi
-	else
-		echo "请输入正确的IP地址"
-		export code=1
-	fi
-}
 
 var(){
 	echo $1=$2 >> ./.var
@@ -51,8 +33,8 @@ elif [ "$1" == "--addnew" ];then
 	do
 		cat /etc/ansible/hosts | grep $i &>/dev/null
         if [ $? -eq 0 ];then
-                echo “mode is $i”
-                break
+            echo “mode is $i”
+            break
         fi
 	done
 
@@ -61,7 +43,7 @@ elif [ "$1" == "--addnew" ];then
 		do   
     		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode   
     		check_ip $addnode
-    		[ "$?" == "0" ] && break   
+    		[ ${code} -eq 0 ] && break   
 		done	
 		for i in $addnode
 		do
@@ -72,9 +54,8 @@ elif [ "$1" == "--addnew" ];then
 		do   
     		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode   
     		check_ip $addnode   
-    		[ $? -eq 0 ] && break   
+    		[ $code -eq 0 ] && break   
 		done
-		read -p "请输入需要增加节点的IP地址(如有多个请用空格分开)：" addnode
 		for i in $addnode
 		do
 			sed -i "2a $i" /etc/ansible/hosts
@@ -84,14 +65,14 @@ elif [ "$1" == "--addnew" ];then
 		do   
     		read -p "请输入需要增加的Ｍaster节点地址(如有多个请用空格分开，若不增添请直接跳过)：" addmaster  
     		check_ip $addmaster
-    		[ $? -eq 0 ] && break   
+    		[ $code -eq 0 ] && break   
 		done	
 
 		while : 
 		do   
     		rread -p "请输入需要增加节点的IP地址(如有多个请用空格分开，若不增添请直接跳过)：" addnode 
     		check_ip $addnode
-    		[ $? -eq 0 ] && break   
+    		[ $code -eq 0 ] && break   
 		done		
 		
 		if [ -z $addmaster ];then
@@ -183,7 +164,12 @@ if [ "$yum" == "yes" ];then
 	mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/bak
 	echo "原yum文件备份至／etc/yum.repos.d/bak文件夹下"
 	\cp /etc/ansible/example/k8s.repo /etc/yum.repos.d/
-	read -p "请输入集群yum源主机地址：" httpd
+	while true;
+	do
+		read -p "请输入集群yum源主机地址：" httpd
+		check_ip $httpd
+		[ $code -eq 0 ] && break
+	done
 	var httpd $httpd
 	yum -y install httpd &> /dev/null
 	systemctl start httpd
@@ -214,17 +200,43 @@ single)
 	var type $type
         while true;
         do
-                read -p "请输入master节点地址：" master
-                n=0
-                for ip in $master;do
-                        attack_ip $ip
-                        n=$(( ${code} + $n ))
-                done
-                [ $n -eq 0 ] && break || continue
+            read -p "请输入master节点地址：" master
+            n=0
+            for ip in $master;do
+                check_ip $ip
+                n=$(( ${code} + $n ))
+            done
+            [ $n -eq 0 ] && break || continue
         done
-	read -p "请输入时间服务器地址：" timeserver  
-	read -p "请输入etcd节点地址(如有多个请用空格分开)：：" etcd   
-	read -p "请输入node节点地址(如有多个请用空格分开)：：" node  
+	
+	    while true;
+        do
+            read -p "请输入时间服务器地址：" timeserver  
+			check_ip $timeserver
+        	[ ${code} -eq 0 ] && break || continue
+        done
+	  
+        while true;
+        do
+            read -p "请输入etcd节点地址(如有多个请用空格分开)：：" etcd
+            n=0
+            for ip in $etcd;do
+                check_ip $ip
+                n=$(( ${code} + $n ))
+            done
+            [ $n -eq 0 ] && break || continue
+        done 
+	 
+	    while true;
+        do
+            read -p "请输入node节点地址(如有多个请用空格分开)：：" node 
+            n=0
+            for ip in $node;do
+                check_ip $ip
+                n=$(( ${code} + $n ))
+            done
+            [ $n -eq 0 ] && break || continue
+        done 
 	read -p "请输入网络插件（calico, flannel, kube-router, cilium）：" network   
 	var master $master
 	var timeserver $timeserver
@@ -253,32 +265,76 @@ single)
 
 multi)
 	var type $type
-	read -p "请输入时间服务器地址：" timeserver
-	read -p "请输入主master节点地址：" master_1
-	read -p "请输入备master节点地址：" master_2 
-	read -p "请输入etcd节点地址文件路径：" etcd
-	read -p "请输入node节点地址文件路径：" node
+		while true;
+		do
+			read -p "请输入时间服务器地址：" timeserver  
+			check_ip $timeserver
+			[ ${code} -eq 0 ] && break || continue
+		done
+
+		while true;
+		do
+			read -p "请输入master节点地址(主节点写第一位，用空格隔开)：" master
+			n=0
+			for ip in $master;do
+				check_ip $ip
+				n=$(( ${code} + $n ))
+			done
+			[ $n -eq 0 ] && break || continue
+		done 
+
+		while true;
+		do
+			read -p "请输入etcd节点地址(如有多个请用空格分开)：" etcd
+			n=0
+			for ip in $etcd;do
+				check_ip $ip
+				n=$(( ${code} + $n ))
+			done
+			[ $n -eq 0 ] && break || continue
+		done 
+	
+	    while true;
+        do
+            read -p "请输入node节点地址(如有多个请用空格分开)：" node 
+            n=0
+            for ip in $node;do
+                check_ip $ip
+                n=$(( ${code} + $n ))
+            done
+            [ $n -eq 0 ] && break || continue
+        done 
 	read -p "请输入网络插件（calico, flannel, kube-router, cilium）：" network
 	read -p "请输入网卡名：" mac
-	var master_1 $master_1
-	var master_2 $master_2
+	var master $master
 	var timeserver $timeserver
 	var etcd $etcd
 	var node $node
 	var network $network
 	var mac $mac
-	sed  -i "s/^backup/$master_2 LB_IF=\"$mac\" LB_ROLE=backup"/   /etc/ansible/example/hosts.m-masters.example
-	sed  -i "s/^master/$master_1 LB_IF=\"$mac\" LB_ROLE=master"/   /etc/ansible/example/hosts.m-masters.example
+	master_num=1
 	sed  -i "s/192.168.1.1 NTP_ENABLED=no/$timeserver NTP_ENABLED=no/" /etc/ansible/example/hosts.m-masters.example
-	sed  -i "10a $master_1" /etc/ansible/example/hosts.m-masters.example
-	sed  -i "11a $master_2" /etc/ansible/example/hosts.m-masters.example 
 	for n in $node
     do
-        sed -i "17a $n" /etc/ansible/example/hosts.m-masters.example 
+        sed -i "23a $n" /etc/ansible/example/hosts.m-masters.example 
     done
+	for n in $master
+	do
+		if [ $master_num -eq 1 ];then
+			sed -i "19a $n LB_IF=$mac LB_ROLE=master" /etc/ansible/example/hosts.m-masters.example
+			master_num=$(($master_num+1))
+		else
+			sed -i "19a $n LB_IF=$mac LB_ROLE=backup" /etc/ansible/example/hosts.m-masters.example
+			master_num=$(($master_num+1))
+		fi
+	done
+	for n in $master
+	do
+		sed -i "16a $n" /etc/ansible/example/hosts.m-masters.example
+	done
 	for n in $etcd
 	do
-		sed -i "8a $n "NODE_NAME=etcd${etcdnum}"" /etc/ansible/example/hosts.m-masters.example 
+		sed -i "14a $n "NODE_NAME=etcd${etcdnum}"" /etc/ansible/example/hosts.m-masters.example 
 		etcdnum=$((${etcdnum}+1))
 	done
 	sed -i "s/CLUSTER_NETWORK=\"flannel\"/CLUSTER_NETWORK=\"$network\"/" /etc/ansible/example/hosts.m-masters.example
@@ -292,8 +348,18 @@ multi)
 
 allinone)
 	var type $type
-    read -p "请输入集群地址：" master
-    read -p "请输入时间服务器地址：" timeserver
+	while true;
+	do
+		read -p "请输入时间服务器地址：" timeserver  
+		check_ip $timeserver
+		[ ${code} -eq 0 ] && break || continue
+	done
+	while true;
+	do
+		read -p "请输入集群地址：" master
+		check_ip $master
+		[ ${code} -eq 0 ] && break || continue
+	done
 	read -p "请输入网络插件类型（calico, flannel, kube-router, cilium）：" network
 	var master $master
 	var timeserver $timeserver
